@@ -1,0 +1,399 @@
+---
+title: "HW2"
+author: "Weixing Gu"
+date: "February 7, 2018"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  html_document: default
+---
+
+```{r setup, echo=FALSE}
+x <- c(1.77, -0.23, 2.76, 3.80, 3.47, 56.75, -1.34, 4.24, -2.44,
+       3.29, 3.71, -2.40, 4.53, -0.07, -1.05, -13.87, -2.53, -1.75)
+### loglikelihood function
+loglikelihood <- function(x, theta) {
+  value <- -length(x)*log(pi)
+  for (i in 1:length(x)){
+    value <- value - log(1+(theta-x[i])^2)
+  }
+  value
+}
+### First derivative of loglikelihood
+llh1 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value - 2*(theta-x[i])/(1+(theta-x[i])^2)
+  }
+  value
+}
+### Second derivative of loglikehood
+llh2 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value - 2*(1-(theta-x[i])^2)/(1+(theta-x[i])^2)^2
+  }
+  value
+}
+
+### Compute theta value when geting MLE
+theta <- array()
+theta[1] <- -1
+difference <- 100
+i <- 1
+while(abs(difference)>10^(-4) & i<100){
+  theta[i+1] <- theta[i] - llh1(x, theta[i])/llh2(x, theta[i])
+  difference <- theta[i+1] - theta[i]
+  i <- i+1
+}
+
+# c(-11, -1, 0, 1.5, 4, 4.7, 7, 8, 38)
+temp <- seq(-6,6,0.1)
+#plot(temp, loglikelihood(x, temp), xlab = "theta", ylab = "loglikehood", type = 'l')
+#plot(theta, xlab = "times", ylab = "theta", type = 'l')
+```
+
+
+## Abstract
+
+I create several functions by Newton-Raphson Method, Fixed-point Iteration, Fisher scoring, Gauss-Newton Approach and so on to calcualte the required theta and other data asked. Many of them contains stopping or updating rule to get the most ideal value I need.
+
+## 1(a)
+
+\begin{align}
+l(\theta)\\
+          &= \ln\prod_{i = 1}^n \frac{1}{\pi[1+(x-\theta)^2]}&\\
+          &= \sum_{i=1}^n \ln\frac{1}{\pi[1+(x-\theta)^2]}&\\
+          &= \sum_{i=1}^n [\ln\frac{1}{\pi} + \ln\frac{1}{1+(x-\theta)^2}]&\\
+          &= -n\ln\pi - \sum_{i=1}^n \ln[1+(x-\theta)^2]&\\
+\end{align}
+\begin{align}
+l' (\theta)\\
+          &= 0 - \sum_{i=1}^n \frac{2(\theta-x_i)}{1+(\theta-x_i)^2}&\\
+          &= - 2\sum_{i=1}^n \frac{\theta - x_i}{1+(\theta-x_i)}&\\
+\end{align}
+\begin{align}
+l''(\theta)\\
+          &= -2\sum_{i=1}^n \frac{1+(\theta-x_i)^2-2(\theta-x_i)(\theta-x_i)}{[1+(\theta-x_i)^2]^2}&\\
+          &= -2\sum_{i=1}^n \frac{1-(\theta-x_i)^2}{[1+(\theta-x_i)^2]^2}&\\
+\end{align}
+\begin{align}
+I(\theta)\\
+          &= n\int\frac{\{p'(x)\}^2}{p(x)}dx\\ 
+          &= n\int\frac{4(x-\theta)^2}{\pi[1+(x-\theta)^2]^4}*\pi[1+(x-\theta)^2]dx&\\
+          &= \frac{4n}{\pi} \int_{-\infty}^\infty \frac{(x-\theta)^2}{[1+(x-\theta)^2]^3}dx&\\
+          &= \frac{4n}{\pi} \int_{-\infty}^\infty \frac{x^2}{(1+x^2)^3}dx&\\
+          &= \frac{4n}{\pi} \int_{-\infty}^\infty [(\frac{1}{(1+x^2)^2}-\frac{1}{(1+x^2)^3})]dx&\\
+          &= \frac{4n}{\pi} (\int_{-\infty}^\infty \frac{1}{(1+x^2)^2}dx-\int_{-\infty}^\infty\frac{1}{(1+x^2)^3}dx)&\\
+          &= \frac{4n}{\pi} [\int_{-\infty}^{\infty}\frac{1}{(1+x^2)^2}dx-(\frac{x}{4(x^2+1)^2}|_{-\infty}^{\infty}+\frac{3}{4}\int_{-\infty}^{\infty}\frac{dx}{(x^2+1)^2})]&\\
+          &= \frac{4n}{\pi}(\int_{-\infty}^{\infty}\frac{1}{4(1+x^2)^2}dx-\frac{x}{4(x^2+1)^2}|_{-\infty}^{\infty})&\\
+          &= \frac{4n}{\pi} [\frac{1}{4}(\frac{x}{2(x^2+1)}|_{-\infty}^{\infty}+\frac{1}{2}\int_{-\infty}^{\infty}\frac{1}{1+x^2}dx)-\frac{x}{4(x^2+1)^2}|_{-\infty}^\infty]&\\
+          &= \frac{4n}{\pi}(\frac{x(x^2-1)}{8(x^2+1)^2}|_{-\infty}^\infty+\frac{1}{8}\int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} \frac{\sec^2t}{1+\tan^2t}dt)&\\
+          &= \frac{4n}{\pi}(0+\frac{\pi}{8})&\\
+          &= \frac{n}{2}&\\
+\end{align}
+
+## 1(b)
+```{r pressure, echo=FALSE}
+plot(temp, loglikelihood(x, temp), xlab = "theta", ylab = "loglikehood", type = 'l')
+plot(theta, xlab = "times", ylab = "theta", type = 'l')
+```
+
+Theta's value of the graph above is -1. I tried all sample starting values, and I found there were no converging value starting from -11, 7, 8 and 38. The mean value is about 3.26, and this is a good starting point since I can find a converging value around 3.
+
+## 1(c)
+```{r set, echo=FALSE}
+fixed_point <- function(alpha, x, theta){
+  value <- alpha*llh1(x, theta) + theta
+  return(value)
+}
+
+start_point <- c(-11, -1, 0, 1.5, 4, 4.7, 7, 8, 38)
+alpha <- c(1,0.64,0.25)
+
+sample <- function(alpha,x,start_point){
+  theta <- array()
+  theta[1] <- start_point
+  diff <- 100
+  i <- 1
+  while(abs(diff)>10^(-4)&i<100){
+    theta[i+1] <- fixed_point(alpha, x, theta[i])
+    diff <- theta[i+1]-theta[i]
+    i <- i+1
+  }
+  plot(theta, xlab = 'times', type = 'l')
+}
+
+for (i in 1:length(alpha)){
+  for (j in 1:length(start_point)){
+    sample(alpha[i],x,start_point[j])
+  }
+}
+```
+
+As we can see graphs above, some starting points have ideal converging values. Some values after iteration are isolating and continues without stopping.
+
+## 1(d)
+```{r Fisher}
+x <- c(1.77, -0.23, 2.76, 3.80, 3.47, 56.75, -1.34, 4.24, -2.44,
+       3.29, 3.71, -2.40, 4.53, -0.07, -1.05, -13.87, -2.53, -1.75)
+llh1 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value - 2*(theta-x[i])/(1+(theta-x[i])^2)
+  }
+  value
+}
+theta <- array()
+theta[1] <- -1
+diff <- 100
+i <- 1
+while(abs(diff)>10^(-4)){
+  theta[i+1] <- theta[i]+llh1(x, theta[i])/(length(x)/2)
+  diff <- theta[i+1]-theta[i]
+  i <- i+1
+}
+plot(theta, xlab = 'times', type = 'l')
+```
+
+In this point of view, I just print one figure which starting point is -1.
+
+##1(e)
+
+After using different methods to measure the value of theta, we can easily see that Newton-Raphson method is the fastest to converge, fixed-point iteration is the second fast, and Fisher scoring is the least. As we can see the graphs above, the fix-point iterations' stability is the worst.
+
+## 2(a)
+
+\begin{align}
+l(\theta)\\
+          &= \sum_{i=1}^n \ln \sin^2\frac{x_i-\theta}{2}-n\ln\pi&
+\end{align}
+
+```{r loglikelihood}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96,
+       2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+theta <- seq(-pi, pi, 0.01)
+loglikelihood <- function(x, theta){
+  value <- -length(x)*log(pi)
+  for (i in 1:length(x)){
+    value <- value + log((sin((x[i]-theta)/2)^2))
+  }
+  value
+}
+value <- array()
+for (i in 1:length(theta)){
+  value[i] <- loglikelihood(x, theta[i])
+}
+plot(theta, value, type = 'l')
+```
+
+## 2(b)
+
+I integrated the function x*p from 0 to 2pi, and get the expression for
+\begin{equation}
+E[X|\theta] = \pi + \sin(\theta)
+\end{equation}
+
+Here is my two roots:
+```{r roots}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96,
+       2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+
+theta <- seq(-pi, pi, 0.01)
+theta_bar <- function(theta){
+  pi+sin(theta)-mean(x)
+}
+
+uniroot(theta_bar, c(-pi, 2))$root
+uniroot(theta_bar, c(2, pi))$root
+```
+
+## 2(c)
+```{r moments}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96,
+       2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+theta <- seq(-pi, pi, 0.01)
+theta_bar <- function(theta){
+  pi+sin(theta)-mean(x)
+}
+
+theta_moment <- c(uniroot(theta_bar, c(-pi, 2))$root, uniroot(theta_bar, c(2, pi))$root)
+
+
+### First derivative of loglikelihood
+llh1 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value + sin(x[i]-theta)/(1-cos(x[i]-theta))
+  }
+  value
+}
+
+### Second derivative of loglikelihood
+llh2 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value + 1/(1-cos(x[i]-theta))
+  }
+  value
+}
+
+### Compute theta value when geting MLE
+theta <- array()
+theta[1] <- theta_moment[1]
+difference <- 100
+i <- 1
+while(abs(difference)>10^(-8)){
+  theta[i+1] <- theta[i] - llh1(x, theta[i])/llh2(x, theta[i])
+  difference <- theta[i+1] - theta[i]
+  i <- i+1
+}
+plot(theta, xlab = 'times')
+
+### Compute theta value when geting MLE
+theta <- array()
+theta[1] <- theta_moment[2]
+difference <- 100
+i <- 1
+while(abs(difference)>10^(-8)){
+  theta[i+1] <- theta[i] - llh1(x, theta[i])/llh2(x, theta[i])
+  difference <- theta[i+1] - theta[i]
+  i <- i+1
+}
+plot(theta, xlab = 'times')
+```
+
+Here is my two plots of two theta moments.
+
+## 2(d)
+
+When I use the 2(c) functions to calcualte the MLE solutions for theta, I got 2.848415 when starting from 2.7, and -2.668857 when starting from -2.7.
+
+## 2(e)
+This is the group what I have got:
+```{r repeat, echo=FALSE}
+x <- c(3.91, 4.85, 2.28, 4.06, 3.70, 4.04, 5.46, 3.53, 2.28, 1.96,
+       2.53, 3.88, 2.22, 3.47, 4.82, 2.46, 2.99, 2.54, 0.52)
+
+### First derivative of loglikelihood
+llh1 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value + sin(x[i]-theta)/(1-cos(x[i]-theta))
+  }
+  value
+}
+
+### Second derivative of loglikelihood
+llh2 <- function(x, theta){
+  value <- 0
+  for (i in 1:length(x)){
+    value <- value + 1/(1-cos(x[i]-theta))
+  }
+  value
+}
+
+### Compute theta value when geting MLE
+temp <- seq(-pi, pi, length.out = 200)
+
+Results <- function(x, theta){
+  difference <- 100
+  i <- 1
+  while(abs(difference)>10^(-4)&i<100){
+    theta[i+1] <- theta[i] - llh1(x, theta[i])/llh2(x, theta[i])
+    difference <- theta[i+1] - theta[i]
+    i <- i+1
+  }
+  theta[i]
+}
+
+value <- array()
+for (i in 1:length(temp)){
+  value[i] <- round(Results(x,temp[i]),6)
+}
+Group <- as.data.frame(table(value))
+Group
+```
+
+## 3(a)
+
+In this problem, I both created my own function with Gauss Newton Method and used built-in function called nls to solve the problem and get the result:
+```{r population, echo=FALSE}
+beetles <- data.frame(
+  days = c(0, 8, 28, 41, 63, 69, 97, 117, 135, 154),
+  beetles = c(2, 47, 192, 256, 768, 896, 1120, 896, 1184, 1024))
+
+times <- beetles$days
+N <- beetles$beetles
+
+z_matrix <- function(r, k){
+  z <- matrix(nrow = length(times), ncol = 1)
+  for (i in 1:length(times)){
+    z[i,1] <- N[i] - 2*k/(2+(k-2)*exp(-r*times[i]))
+  }
+  z
+}
+
+N0 <- 2
+A_matrix <- function(r, k){
+  A <- matrix(nrow = length(times), ncol = 2)
+  for (i in 1:length(times)){
+    A[i,1] <- times[i]*(k-N0)*exp(-1*r*times[i])*k*N0/((N0+(k-N0)*exp(-1*r*times[i]))^2)
+    A[i,2] <- (N0^2-N0^2*exp(-1*r*times[i]))/((N0+(k-N0)*exp(-1*r*times[i]))^2)
+
+  }
+  A
+}
+
+theta_calculate <- function(r, k){
+  A <- A_matrix(r, k)
+  z <- z_matrix(r, k)
+  theta <- solve(t(A)%*%A)%*%t(A)%*%z
+  theta
+}
+```
+
+```{r Gauss_Newton}
+Gauss_Newton <- function(r0,k0){
+  start <- c(0.5,1000)
+  error <- sum(abs(start))
+  i <- 1
+  while(error>10^(-4)){
+    r0 <- r0 + theta_calculate(r0,k0)[1]
+    k0 <- k0 + theta_calculate(r0,k0)[2]
+    error <- sum(abs(theta_calculate(r0,k0)))
+    i <- i + 1
+  }
+  theta <- c(r0, k0, i)
+  theta
+}
+Gauss_Newton(0.2,2000)
+model <- nls(N~(2*k)/(2+(k-2)*exp(-r*times)), start = list(k = 100, r = 0.1))
+model
+```
+
+## 3(b)
+
+Here is my contour plot of the sum of squared errors:
+```{r contour}
+###Plot the contour of the sum of squared errors
+i <- 1
+error <- 1
+r0 <- array()
+k0 <- array()
+r0[1] <- 0.2
+k0[1] <- 1000
+while(error>10^(-4)){
+  r0[i+1] <- r0[i] + theta_calculate(r0[i],k0[i])[1]
+  k0[i+1] <- k0[i] + theta_calculate(r0[i],k0[i])[2]
+  error <- sum(abs(theta_calculate(r0[i+1],k0[i+1])))
+  i <- i + 1
+}
+
+value <- array()
+for (i in 1:length(r0)){
+  value[i] <- sum((N - 2*k0[i]/(2+(k0[i]-2)*exp(-r0[i]*times)))^2)
+  value
+}
+plot(value, xlab = 'times', ylab = 'squared errors', type = 'l')
+```
